@@ -1,57 +1,31 @@
-from datetime import datetime
-import platform
 import os
 import socket
+import platform
 import distro
 import psutil
-import wmi
+from datetime import datetime
 
-def get_user_name():
-    user_name = os.getenv("USERNAME") or os.getenv("USER")
-    return user_name or "Unknown"  # Added fallback value
+def get_user_info():
+    user_name = os.getenv("USER")
+    return user_name
 
 def get_hostname():
     hostname = socket.gethostname()
     return hostname
 
-def get_os_info():
-    if platform.system() == "Linux":
-        os_name = distro.name(pretty=True)
-    elif platform.system() == "Windows":
-        os_name = f"Windows {platform.win32_ver()[0]}"  # Added "Windows" prefix
-    elif platform.system() == "Darwin":
-        os_name = f"macOS {platform.mac_ver()[0]}"
-    else:
-        os_name = platform.system()
-    return os_name
+def get_os_distribution():
+    os_distribution = distro.name()
+    return os_distribution
 
-def get_hardware_model():
-    try:
-        if platform.system() == "Linux":
-            with open("/sys/devices/virtual/dmi/id/product_family", "r") as f:
-                return f.read().strip()
-        elif platform.system() == "Darwin":
-            import subprocess
-            cmd = "system_profiler SPHardwareDataType | grep 'Model Name'"
-            result = subprocess.check_output(cmd, shell=True).decode()
-            return result.split(":")[1].strip()
-        elif platform.system() == "Windows":
-            c = wmi.WMI()
-            system = c.Win32_ComputerSystem()[0]
-            return f"{system.Manufacturer} {system.Model}"
-        return "Unknown"
-    except Exception as e:
-        return f"Unable to determine hardware model: {str(e)}"
-
-def get_architecture():
+def get_os_architecture():
     architecture = platform.machine()
     return architecture
 
-def get_kernel_version():
-    kernel_version = platform.uname().release
-    return kernel_version
+def get_os_kernel_info():
+    kernel = platform.release()
+    return kernel
 
-def get_uptime():
+def get_os_uptime():
     boot_time = datetime.fromtimestamp(psutil.boot_time())
     uptime = datetime.now() - boot_time
     
@@ -60,23 +34,37 @@ def get_uptime():
     hours, remainder = divmod(uptime.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     
-    if days > 0:
-        return f"{days}d {hours}h {minutes}m {seconds}s"
-    else:
-        return f"{hours}h {minutes}m {seconds}s"
+    return f"{days}d {hours}h {minutes}m {seconds}s"
 
+    
 def main_menu():
     try:
-        print(f"\nSystem Information")
-        print("-" * 30)
-        print(f"Host: {get_hostname()}@{get_user_name()}")
-        print(f"OS: {get_os_info()} ({get_architecture()})")
-        print(f'Hardware: {get_hardware_model()}')
-        print(f"Kernel: {get_kernel_version()}")
-        print(f"Uptime: {get_uptime()}")
-        print("-" * 30)
+        menu_list = [
+            ("👤 User:", f'{get_user_info()}@{get_hostname()}'),
+            ("🖥️ OS:", f'{get_os_distribution()} {get_os_architecture()}'),
+            ("⚙️ Kernel:", f'{get_os_kernel_info()}'),
+            ("⏱️ Uptime:", f'{get_os_uptime()}'),
+        ]
+    
+        # fixed table width
+        table_width = 50  # you can adjust this value
+        content_width = table_width - 4  # subtract space for the border
+        
+        # top line
+        print("\n╭" + "─" * table_width + "╮")
+        print("│" + "Software Information".center(table_width) + "│")
+        print("├" + "─" * table_width + "┤")
+        
+        # display data
+        for label, value in menu_list:
+            print(f"│ {label + ' ' + value:<{table_width-1}}│")
+            
+        # bottom line
+        print("╰" + "─" * table_width + "╯")
+            
     except Exception as e:
         print(f"Error gathering system information: {str(e)}")
 
+    
 if __name__ == "__main__":
     main_menu()
